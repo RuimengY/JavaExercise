@@ -1,9 +1,20 @@
+import java.time.LocalDate;
+
 public class Goods {
     private String name;
     private float price;
     private int life;
     private String productDate;
     private float discount;
+    private LocalDate lastDay;
+
+    public LocalDate getLastDay() {
+        return lastDay;
+    }
+
+    public void setLastDay(LocalDate lastDay) {
+        this.lastDay = lastDay;
+    }
 
     public Goods(String name, float price, int life, String productDate) {
         this.name = name;
