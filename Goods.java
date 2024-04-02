@@ -3,12 +3,17 @@ public class Goods {
     private float price;
     private int life;
     private String productDate;
+    private float discount;
 
     public Goods(String name, float price, int life, String productDate) {
         this.name = name;
         this.price = price;
         this.life = life;
         this.productDate = productDate;
+    }
+    public Goods(String name,float discount){
+        this.name = name;
+        this.discount = discount;
     }
 
     public Goods() {
@@ -44,5 +49,13 @@ public class Goods {
 
     public void setProductDate(String productDate) {
         this.productDate = productDate;
+    }
+
+    public float getDiscount() {
+        return discount;
+    }
+
+    public void setDiscount(float discount) {
+        this.discount = discount;
     }
 }
