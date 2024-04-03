@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class FamilyMart {
@@ -22,7 +23,6 @@ public class FamilyMart {
         initialOfPurchase();
         initialOfSell();
         LastDate();
-        judgeFirst();
         morning();
         night();
         System.out.printf(day+" day : turnover:%.2f\n", turnover);
@@ -110,18 +110,32 @@ public class FamilyMart {
             LocalDate productDate = LocalDate.parse(date, DateTimeFormatter.ofPattern(format));
             // 计算过期日期
             purchase.get(i).setLastDay(productDate.plusDays(life - 1));
+
         }
+
     }
     //一开始没有注意到的点：如果购进的食物过期了，则不能卖出去
     public void judgeFirst(){
-        for (int i = 0; i < purchase.size(); i++) {
+        int size = purchase.size();
+        /* for (int i = 0; i < size; i++) {
+
             if(purchase.get(i).getLastDay().isBefore(timeNow())){
                 purchase.remove(i);
             }
+        } */
+        Iterator<Goods> iterator = purchase.iterator();
+        while (iterator.hasNext()) {
+            Goods next = iterator.next();
+            if(next.getLastDay().isBefore(timeNow())){
+                iterator.remove();
+            }
         }
+
     }
 
     public void morning() {
+        //先删除掉过期元素
+        judgeFirst();
         //建立一个如果名字相同要比较时间的索引数组
         int[] index = new int[purchase.size()];
         //先找到和要卖的相同名字的买的东西
