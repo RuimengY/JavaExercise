@@ -3,47 +3,51 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FamilyMart {
-    private Goods[] purchase = null;
+    //用list的好处在于，第二天不会完全删掉第一天的内容
+    private List<Goods> purchase = new ArrayList<>();
+    //sell用数组的好处在于，每天都可以删除重来
     private Goods[] sell = null;
     private float turnover = 0;
     private int day;
 
-    public void play() throws IOException {
-        initialOfPurchase(0);
-        initialOfSell(0);
-        LastDate();
-        morning();
-        System.out.printf("0 day : turnover:%.2f\n",turnover);
+    public void setDay(int day) {
+        this.day = day;
     }
-    public void initialOfPurchase(int i) throws IOException {
-        int count = 0;
-        //统计录入的大小作为商品的数组的大小
+
+    public void play() throws IOException {
+        initialOfPurchase();
+        initialOfSell();
+        LastDate();
+        judgeFirst();
+        morning();
+        night();
+        System.out.printf(day+" day : turnover:%.2f\n", turnover);
+    }
+
+    public void initialOfPurchase() {
+        //ArrayList加入数据可长可短
         try {
-            BufferedReader reader = new BufferedReader(new FileReader("test_cases\\" + i + "_pur.txt"));
-            while ((reader.readLine()) != null) {
-                count++;
+            BufferedReader reader = new BufferedReader(new FileReader("test_cases\\" + day + "_pur.txt"));
+            String line;
+            for (int j = 0; (line = reader.readLine()) != null; j++) {
+                if (j == 0) continue;
+                //在不止是第一次的基础上添加
+                purchase.add(InitialPurchase(line));
             }
-            purchase = new Goods[count - 1];
             reader.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        BufferedReader reader2 = new BufferedReader(new FileReader("test_cases\\" + i + "_pur.txt"));
-        String line;
-        for (int j = 0; j < count; j++) {
-            line = reader2.readLine();
-            if (j == 0) continue;
-            purchase[j - 1] = InitialPurchase(line);
-        }
     }
 
-    public void initialOfSell(int i) throws IOException {
+    public void initialOfSell() throws IOException {
         int count = 0;
         try {
-            BufferedReader reader = new BufferedReader(new FileReader("test_cases\\" + i + "_sel.txt"));
+            BufferedReader reader = new BufferedReader(new FileReader("test_cases\\" + day + "_sel.txt"));
             while ((reader.readLine()) != null) {
                 count++;
             }
@@ -52,7 +56,7 @@ public class FamilyMart {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        BufferedReader reader2 = new BufferedReader(new FileReader("test_cases\\" + i + "_sel.txt"));
+        BufferedReader reader2 = new BufferedReader(new FileReader("test_cases\\" + day + "_sel.txt"));
         //创建一个数组保存商品中的每个对象
         String line;
         for (int j = 0; j < count; j++) {
@@ -96,42 +100,45 @@ public class FamilyMart {
     //关于时间的处理（时间的格式化转数字，判断能不能卖）
 
     public void LastDate() {
-        for (int i = 0; i < purchase.length; i++) {
-            String date = purchase[i].getProductDate();
-            int life = purchase[i].getLife();
+        for (int i = 0; i < purchase.size(); i++) {
+            String date = purchase.get(i).getProductDate();
+            int life = purchase.get(i).getLife();
             //2022/04/26
             String format = "yyyy/MM/dd";
             //生产日期+保质期-1=需要扔的晚上
-            //2022年5月2日与需要扔的晚上的差，如果最后时限小于5月2日(说明一开始就过期）舍去（如果等于说明白天可以先用)。
-            //每run一天就是把5月2号的日期加1，需要扔的晚上等于run的天数
             // 将生产日期字符串解析为LocalDate对象
             LocalDate productDate = LocalDate.parse(date, DateTimeFormatter.ofPattern(format));
             // 计算过期日期
-            purchase[i].setLastDay(productDate.plusDays(life - 1));
-
+            purchase.get(i).setLastDay(productDate.plusDays(life - 1));
+        }
+    }
+    //一开始没有注意到的点：如果购进的食物过期了，则不能卖出去
+    public void judgeFirst(){
+        for (int i = 0; i < purchase.size(); i++) {
+            if(purchase.get(i).getLastDay().isBefore(timeNow())){
+                purchase.remove(i);
+            }
         }
     }
 
     public void morning() {
         //建立一个如果名字相同要比较时间的索引数组
-        int[] index = new int[purchase.length];
+        int[] index = new int[purchase.size()];
         //先找到和要卖的相同名字的买的东西
         //进行索引比较，确定出卖哪一个
-        //营业额增加，这个索引对应的东西转成null
+        //营业额增加，这个索引对应的东西删除掉
         for (int i = 0; i < sell.length; i++) {
             int count = 0;
-            for (int j = 0; j < purchase.length; j++) {
-                if (purchase[j] != null) {
-                    if (sell[i].getName().equals(purchase[j].getName())) {
-                        index[count] = j;
-                        count++;
-                    }
+            for (int j = 0; j < purchase.size(); j++) {
+                if (sell[i].getName().equals(purchase.get(j).getName())) {
+                    index[count] = j;
+                    count++;
                 }
             }
-            if (count!=0) {
+            if (count != 0) {
                 int numberOfPurchase = compareDate(index, count);
-                turnover += purchase[numberOfPurchase].getPrice() * sell[i].getDiscount();
-                purchase[numberOfPurchase] = null;
+                turnover += purchase.get(numberOfPurchase).getPrice() * sell[i].getDiscount();
+                purchase.remove(numberOfPurchase);
             }
         }
     }
@@ -140,9 +147,27 @@ public class FamilyMart {
         //将lastDay最小的挑出来(没过期且最容易过期)
         int index = date[0];
         for (int i = 1; i < count; i++) {
-            if (purchase[date[i]].getLastDay().isBefore(purchase[index].getLastDay()))
+            if (purchase.get(date[i]).getLastDay().isBefore(purchase.get(index).getLastDay()))
                 index = date[i];
         }
         return index;
+    }
+    //晚上的时候处理要删除的元素
+    public void night(){
+        for (int i = 0; i < purchase.size(); i++) {
+            //比较lastDay和开店时间（5月2日）到现在的时间，如果等于则删除
+           if(purchase.get(i).getLastDay().equals(timeNow()))
+               purchase.remove(i);
+        }
+    }
+    public LocalDate timeNow(){
+        String dateString = "2022-05-02";
+        // 定义日期格式
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        // 将字符串解析为LocalDate对象
+        LocalDate date = LocalDate.parse(dateString, formatter);
+        // 添加指定天数
+        LocalDate newDate = date.plusDays(day);
+        return newDate;
     }
 }
